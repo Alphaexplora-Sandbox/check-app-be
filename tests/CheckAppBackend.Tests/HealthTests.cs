@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using CheckAppBackend.Domain;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 

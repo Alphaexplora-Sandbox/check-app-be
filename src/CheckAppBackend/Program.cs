@@ -1,35 +1,100 @@
+using System.Text;
 using CheckAppBackend.Domain;
+using CheckAppBackend.Infrastructure.Data;
+using CheckAppBackend.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registered as an interface so a test can replace it without replacing
-// the host. A concrete registration would leave nothing to substitute.
+// Domain status
 builder.Services.AddSingleton<IServiceStatus, ServiceStatus>();
 
-// Describes the API so the contract tests have something to generate
-// from. Document only — Swagger UI is a separate package and is not
-// referenced, so nothing new is published by the running service.
+// Password & JWT services
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+
+// Database configuration
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+
+if (!string.IsNullOrWhiteSpace(connectionString) &&
+    (connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase) ||
+     connectionString.StartsWith("Server=", StringComparison.OrdinalIgnoreCase) ||
+     connectionString.StartsWith("postgres", StringComparison.OrdinalIgnoreCase)))
+{
+    if (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+        connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        var uri = new Uri(connectionString);
+        var userInfo = uri.UserInfo.Split(':');
+        connectionString = $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={(userInfo.Length > 1 ? userInfo[1] : "")};SSL Mode=Require;Trust Server Certificate=true";
+    }
+
+    builder.Services.AddDbContext<EcommerceMockDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
+else
+{
+    builder.Services.AddDbContext<EcommerceMockDbContext>(options =>
+        options.UseInMemoryDatabase("EcommerceMockDb"));
+}
+
+// Authentication & JWT
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "e-commerce-mock-super-secret-production-signing-key-minimum-32-chars-long";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ecommerce-mock";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddControllers();
+
+// OpenAPI Document
 builder.Services.AddOpenApi();
 
-// A browser only lets a frontend on another origin call this API when that
-// origin is listed here. ALPHACI sets CORS_ORIGINS to the deployed
-// frontend's address on managed hosting; a local run falls back to the
-// frontend dev server.
-var corsOrigins = (builder.Configuration["CORS_ORIGINS"] ?? "http://localhost:3000")
+// CORS
+var corsOrigins = (builder.Configuration["CORS_ORIGINS"] ?? "http://localhost:3000,http://localhost:5173")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
-    policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod()));
+    policy.WithOrigins(corsOrigins)
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials()));
 
 var app = builder.Build();
 
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// The production gate probes /health after a deployment, so this endpoint
-// is part of the pipeline contract rather than a convenience.
-// .Produces<T>() is what puts a response SHAPE in the document. Without
-// it the schema says an endpoint exists and nothing about what it
-// returns, and a contract test generated from that can only check the
-// status code — it would pass against an endpoint returning anything.
+// Seed database
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<EcommerceMockDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    await EcommerceMockDbSeeder.SeedAsync(db, hasher);
+}
+
+// Map Controllers
+app.MapControllers();
+
+// Health endpoints for pipeline probe & test contract
 app.MapGet("/health", (IServiceStatus status) =>
     Results.Ok(new HealthResponse(status.CurrentStatus(), ServiceInfo.Name)))
    .Produces<HealthResponse>(StatusCodes.Status200OK);
@@ -37,14 +102,6 @@ app.MapGet("/health", (IServiceStatus status) =>
 app.MapGet("/", () => Results.Ok(new HealthResponse("ready", ServiceInfo.Name)))
    .Produces<HealthResponse>(StatusCodes.Status200OK);
 
-app.Run();
+await app.RunAsync();
 
-public record HealthResponse(string Status, string Service);
-
-public static class ServiceInfo
-{
-    public const string Name = "check-app-backend";
-}
-
-// Exposed so the test project can host the application in memory.
 public partial class Program;
