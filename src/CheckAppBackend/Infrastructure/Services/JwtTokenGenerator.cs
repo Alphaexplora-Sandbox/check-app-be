@@ -22,7 +22,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateToken(User user)
     {
-        var secret = _configuration["Jwt:Key"] ?? Convert.ToBase64String(Encoding.UTF8.GetBytes("ec_mock_key_32chars_long_1234567"));
+        var secret = _configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET") ?? new string('k', 32);
         var issuer = _configuration["Jwt:Issuer"] ?? "ecommerce-mock";
         var audience = _configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 

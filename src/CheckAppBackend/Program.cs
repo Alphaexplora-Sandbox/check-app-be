@@ -42,7 +42,7 @@ else
 }
 
 // Authentication & JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? Convert.ToBase64String(Encoding.UTF8.GetBytes("ec_mock_key_32chars_long_1234567"));
+var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET") ?? new string('k', 32);
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ecommerce-mock";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 
