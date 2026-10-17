@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CheckAppBackend.Application.Dtos;
 
 public record CategoryDto(Guid Id, string Name, string Slug, string? Description, string? ImageUrl);
@@ -18,17 +20,17 @@ public record ProductDto(
 );
 
 public record CreateProductDto(
-    Guid CategoryId,
+    [property: JsonRequired] Guid CategoryId,
     string Name,
     string? Slug,
     string Description,
-    decimal Price,
-    int StockQuantity,
+    [property: JsonRequired] decimal Price,
+    [property: JsonRequired] int StockQuantity,
     string ImageUrl,
-    bool IsFeatured
+    [property: JsonRequired] bool IsFeatured
 );
 
-public record UpdateStockDto(int StockQuantity);
+public record UpdateStockDto([property: JsonRequired] int StockQuantity);
 
 public class ProductFilterParams
 {
@@ -36,7 +38,7 @@ public class ProductFilterParams
     public string? Category { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
-    public string? SortBy { get; set; } // "price_asc", "price_desc", "featured", "rating", "newest"
+    public string? SortBy { get; set; }
     public bool? Featured { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;

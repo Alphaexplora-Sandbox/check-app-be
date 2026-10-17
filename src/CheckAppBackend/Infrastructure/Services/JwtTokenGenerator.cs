@@ -31,7 +31,8 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var issuer = _configuration["Jwt:Issuer"] ?? "ecommerce-mock";
         var audience = _configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var rawKey = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(secret));
+        var key = new SymmetricSecurityKey(rawKey);
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]

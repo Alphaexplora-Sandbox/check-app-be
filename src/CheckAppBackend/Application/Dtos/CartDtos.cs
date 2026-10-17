@@ -1,8 +1,10 @@
+using System.Text.Json.Serialization;
+
 namespace CheckAppBackend.Application.Dtos;
 
-public record AddToCartDto(Guid ProductId, int Quantity = 1);
+public record AddToCartDto([property: JsonRequired] Guid ProductId, [property: JsonRequired] int Quantity = 1);
 
-public record UpdateCartItemDto(int Quantity);
+public record UpdateCartItemDto([property: JsonRequired] int Quantity);
 
 public record CartItemDto(
     Guid Id,
