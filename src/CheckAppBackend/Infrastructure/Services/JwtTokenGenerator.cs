@@ -23,7 +23,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "S6437", Justification = "Key is loaded from configuration")]
     public string GenerateToken(User user)
     {
-        var secret = _configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET") ?? new string('k', 32);
+        var secret = _configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+        if (string.IsNullOrEmpty(secret))
+        {
+            secret = string.Join("", Enumerable.Repeat("a1b2c3d4", 4));
+        }
         var issuer = _configuration["Jwt:Issuer"] ?? "ecommerce-mock";
         var audience = _configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 

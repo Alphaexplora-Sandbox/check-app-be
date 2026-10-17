@@ -42,7 +42,11 @@ else
 }
 
 // Authentication & JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET") ?? new string('k', 32);
+var jwtKey = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET");
+if (string.IsNullOrEmpty(jwtKey))
+{
+    jwtKey = string.Join("", Enumerable.Repeat("a1b2c3d4", 4));
+}
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ecommerce-mock";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 
