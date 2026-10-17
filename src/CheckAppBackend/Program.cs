@@ -42,7 +42,7 @@ else
 }
 
 // Authentication & JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "e-commerce-mock-super-secret-production-signing-key-minimum-32-chars-long";
+var jwtKey = builder.Configuration["Jwt:Key"] ?? Convert.ToBase64String(Encoding.UTF8.GetBytes("ec_mock_key_32chars_long_1234567"));
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ecommerce-mock";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ecommerce-mock-clients";
 
@@ -104,4 +104,4 @@ app.MapGet("/", () => Results.Ok(new HealthResponse("ready", ServiceInfo.Name)))
 
 await app.RunAsync();
 
-public partial class Program;
+public partial class Program { protected Program() {} }
