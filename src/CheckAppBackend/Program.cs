@@ -84,6 +84,18 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 var app = builder.Build();
 
 app.UseCors();
+
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsTrace(context.Request.Method))
+    {
+        context.Response.Headers.Allow = "GET, HEAD, OPTIONS";
+        context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+        return;
+    }
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
