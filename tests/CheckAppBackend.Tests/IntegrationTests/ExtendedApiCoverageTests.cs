@@ -94,7 +94,8 @@ public class ExtendedApiCoverageTests : IClassFixture<WebApplicationFactory<Prog
                 "High quality engineering component",
                 79.99m,
                 50,
-                "https://images.unsplash.com/test.jpg"
+                "https://images.unsplash.com/test.jpg",
+                true
             ))
         };
         createProdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
