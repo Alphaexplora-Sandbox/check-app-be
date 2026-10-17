@@ -117,7 +117,7 @@ jobs:
             exit 0
           fi
 
-          WORKED=$(printf '%s' "$JOBS" | jq '[.jobs[]? | select(.name != "report-results") | select(.conclusion != "skipped")] | length')
+          WORKED=$(printf '%s' "$JOBS" | jq '[.jobs[]? | select(.name != "report-results" and .name != "pipeline-context" and .name != "upstream-work-check") | select(.conclusion != "skipped")] | length')
 
           if [ "$WORKED" -eq 0 ]; then
             echo "::warning::$PREVIOUS_NAME completed without running any of its jobs, so this stage has nothing to act on and will skip. Its gate was closed, which usually means the stage before IT did not pass - fix that one."
@@ -309,6 +309,7 @@ jobs:
       working-directory: .
       system-name: check-app-backend
       base-url: ${{ needs.resolve-targets.outputs.api-uat }}
+      schema-path: src/CheckAppBackend/CheckAppBackend.json
       checkout-ref: ${{ needs.pipeline-context.outputs.sha }}
   report-results:
     if: ${{ always() }}
