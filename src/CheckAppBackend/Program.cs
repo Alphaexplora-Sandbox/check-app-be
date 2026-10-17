@@ -104,4 +104,9 @@ app.MapGet("/", () => Results.Ok(new HealthResponse("ready", ServiceInfo.Name)))
 
 await app.RunAsync();
 
-public partial class Program { protected Program() {} }
+public partial class Program
+{
+    protected Program()
+    {
+    }
+}
