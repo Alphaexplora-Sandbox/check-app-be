@@ -24,6 +24,8 @@ public class CartController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CartResponseDto>> GetCart()
     {
         var userId = User.GetUserId();
@@ -54,6 +56,10 @@ public class CartController : ControllerBase
     }
 
     [HttpPost("items")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CartResponseDto>> AddItem([FromBody] AddToCartDto request)
     {
         var userId = User.GetUserId();
@@ -102,6 +108,10 @@ public class CartController : ControllerBase
     }
 
     [HttpPut("items/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CartResponseDto>> UpdateItem(Guid id, [FromBody] UpdateCartItemDto request)
     {
         var userId = User.GetUserId();
@@ -133,6 +143,9 @@ public class CartController : ControllerBase
     }
 
     [HttpDelete("items/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CartResponseDto>> DeleteItem(Guid id)
     {
         var userId = User.GetUserId();
@@ -149,6 +162,8 @@ public class CartController : ControllerBase
     }
 
     [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> ClearCart()
     {
         var userId = User.GetUserId();

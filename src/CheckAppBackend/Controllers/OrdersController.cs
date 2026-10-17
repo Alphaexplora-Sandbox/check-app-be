@@ -29,6 +29,9 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost("checkout")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<OrderResponseDto>> Checkout([FromBody] CheckoutRequestDto request)
     {
         var userId = User.GetUserId();
@@ -145,6 +148,8 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<OrderResponseDto>>> GetOrders()
     {
         var userId = User.GetUserId();
@@ -169,6 +174,9 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrderResponseDto>> GetOrderById(Guid id)
     {
         var userId = User.GetUserId();
@@ -195,6 +203,11 @@ public class OrdersController : ControllerBase
 
     [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/status")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrderResponseDto>> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusDto request)
     {
         var order = await _dbContext.Orders
