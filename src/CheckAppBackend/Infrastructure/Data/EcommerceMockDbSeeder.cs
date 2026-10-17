@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CheckAppBackend.Infrastructure.Data;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "S1075:URIs should not be hardcoded")]
 public static class EcommerceMockDbSeeder
 {
     public static async Task SeedAsync(EcommerceMockDbContext dbContext, IPasswordHasher passwordHasher)

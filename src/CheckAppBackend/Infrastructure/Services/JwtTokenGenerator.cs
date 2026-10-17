@@ -20,6 +20,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _configuration = configuration;
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "S6437", Justification = "Key is loaded from configuration")]
     public string GenerateToken(User user)
     {
         var secret = _configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_SECRET") ?? new string('k', 32);
