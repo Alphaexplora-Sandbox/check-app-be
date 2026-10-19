@@ -16,6 +16,7 @@ public class EcommerceMockDbContext : DbContext
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -117,6 +118,22 @@ public class EcommerceMockDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+        // PaymentMethod
+        modelBuilder.Entity<PaymentMethod>(entity =>
+        {
+            entity.ToTable("payment_methods");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CardHolderName).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.CardNumberMasked).IsRequired().HasMaxLength(30);
+            entity.Property(e => e.Brand).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ExpiryMonth).IsRequired().HasMaxLength(2);
+            entity.Property(e => e.ExpiryYear).IsRequired().HasMaxLength(4);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

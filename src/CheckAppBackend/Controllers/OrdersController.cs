@@ -107,7 +107,7 @@ public class OrdersController : ControllerBase
                 TotalAmount = totalAmount,
                 Status = OrderStatus.Processing,
                 ShippingAddress = JsonSerializer.Serialize(request.ShippingAddress),
-                PaymentMethod = request.PaymentMethod ?? "credit_card",
+                PaymentMethod = request.SavedPaymentMethodId.HasValue ? "saved_card" : (request.PaymentMethod ?? "credit_card"),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 OrderItems = orderItems
@@ -217,6 +217,134 @@ public class OrdersController : ControllerBase
         await _dbContext.SaveChangesAsync();
 
         return Ok(MapToResponseDto(order));
+    }
+
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<ActionResult<OrderResponseDto>> CancelOrder(Guid id, [FromBody] CancelOrderRequestDto? request)
+    {
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
+
+        var order = await _dbContext.Orders
+            .Include(o => o.OrderItems)
+            .ThenInclude(oi => oi.Product)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+        {
+            return NotFound(new { message = "Order not found." });
+        }
+
+        if (!isAdmin && order.UserId != userId)
+        {
+            return Forbid();
+        }
+
+        if (order.Status == OrderStatus.Cancelled)
+        {
+            return BadRequest(new { message = "Order is already cancelled." });
+        }
+
+        if (order.Status == OrderStatus.Delivered || order.Status == OrderStatus.Shipped)
+        {
+            return BadRequest(new { message = "Cannot cancel order that is already shipped or delivered." });
+        }
+
+        // Restore inventory stock atomically
+        foreach (var item in order.OrderItems)
+        {
+            if (item.Product != null)
+            {
+                item.Product.StockQuantity += item.Quantity;
+                item.Product.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        order.Status = OrderStatus.Cancelled;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(MapToResponseDto(order));
+    }
+
+    [HttpGet("{id:guid}/track")]
+    public async Task<ActionResult<OrderTrackingResponseDto>> TrackOrder(Guid id)
+    {
+        var userId = User.GetUserId();
+        var isAdmin = User.IsInRole("Admin");
+
+        var order = await _dbContext.Orders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+        {
+            return NotFound(new { message = "Order not found." });
+        }
+
+        if (!isAdmin && order.UserId != userId)
+        {
+            return Forbid();
+        }
+
+        var milestones = new List<OrderMilestoneDto>();
+        var isCancelled = order.Status == OrderStatus.Cancelled;
+
+        milestones.Add(new OrderMilestoneDto(
+            "Order Placed",
+            "Order " + order.OrderNumber + " was submitted by customer.",
+            order.CreatedAt,
+            true,
+            order.Status == OrderStatus.Pending && !isCancelled
+        ));
+
+        milestones.Add(new OrderMilestoneDto(
+            "Payment Confirmed",
+            "Payment via " + order.PaymentMethod + " verified successfully.",
+            order.CreatedAt.AddMinutes(2),
+            order.Status != OrderStatus.Pending || isCancelled,
+            order.Status == OrderStatus.Processing && !isCancelled
+        ));
+
+        if (isCancelled)
+        {
+            milestones.Add(new OrderMilestoneDto(
+                "Order Cancelled",
+                "Order cancelled by customer. Product inventory restocked and refund initiated.",
+                order.UpdatedAt,
+                true,
+                true
+            ));
+        }
+        else
+        {
+            milestones.Add(new OrderMilestoneDto(
+                "In Transit",
+                "Package scanned at distribution center and en route to destination.",
+                order.CreatedAt.AddHours(2),
+                order.Status == OrderStatus.Shipped || order.Status == OrderStatus.Delivered,
+                order.Status == OrderStatus.Shipped
+            ));
+
+            milestones.Add(new OrderMilestoneDto(
+                "Delivered",
+                "Package delivered and handed to recipient.",
+                order.CreatedAt.AddDays(1),
+                order.Status == OrderStatus.Delivered,
+                order.Status == OrderStatus.Delivered
+            ));
+        }
+
+        return Ok(new OrderTrackingResponseDto(
+            order.Id,
+            order.OrderNumber,
+            order.Status.ToString(),
+            order.CreatedAt,
+            order.ShippingAddress,
+            milestones
+        ));
     }
 
     private static OrderResponseDto MapToResponseDto(Order order, ShippingAddressDto? address = null)
