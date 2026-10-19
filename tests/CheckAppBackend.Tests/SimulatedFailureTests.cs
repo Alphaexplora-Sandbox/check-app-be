@@ -5,7 +5,7 @@ namespace CheckAppBackend.Tests;
 public class SimulatedFailureTests
 {
     // Toggle flag for CI/CD quality gate error simulation
-    public const bool SimulationFixed = true;
+    public const bool SimulationFixed = false;
 
     [Fact]
     public void TC_SIM_BE_001_Verify_Order_Cancellation_Restock_Policy()
