@@ -12,6 +12,33 @@ public static class EcommerceMockDbSeeder
         // Ensure database created if relational or in-memory
         await dbContext.Database.EnsureCreatedAsync();
 
+        var cardId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        if (!await dbContext.PaymentMethods.AnyAsync(p => p.Id == cardId))
+        {
+            var demoCard = new PaymentMethod
+            {
+                Id = cardId,
+                UserId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                CardHolderName = "Customer Demo",
+                CardNumberMasked = " " " " "  " " " "  " " " " 4242",
+                ExpiryMonth = "12",
+                ExpiryYear = "2028",
+                Brand = "Visa",
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            try
+            {
+                await dbContext.PaymentMethods.AddAsync(demoCard);
+                await dbContext.SaveChangesAsync();
+            }
+            catch
+            {
+                // Concurrently seeded
+            }
+        }
+
+
         var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         if (!await dbContext.Users.AnyAsync(u => u.Id == adminId))
         {

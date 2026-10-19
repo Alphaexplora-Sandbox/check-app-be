@@ -10,7 +10,9 @@ public record ShippingAddressDto(
 
 public record CheckoutRequestDto(
     ShippingAddressDto ShippingAddress,
-    string? PaymentMethod = "credit_card"
+    string? PaymentMethod = "credit_card",
+    Guid? SavedPaymentMethodId = null,
+    bool SaveCardForFutureUse = false
 );
 
 public record OrderItemDto(
@@ -36,3 +38,24 @@ public record OrderResponseDto(
 );
 
 public record UpdateOrderStatusDto(string Status);
+
+public record CancelOrderRequestDto(
+    string? Reason = "Customer requested cancellation"
+);
+
+public record OrderMilestoneDto(
+    string Title,
+    string Description,
+    DateTime Timestamp,
+    bool Completed,
+    bool Current
+);
+
+public record OrderTrackingResponseDto(
+    Guid OrderId,
+    string OrderNumber,
+    string Status,
+    DateTime OrderDate,
+    string ShippingAddress,
+    List<OrderMilestoneDto> Milestones
+);
